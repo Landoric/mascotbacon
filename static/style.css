@@ -1,0 +1,69 @@
+body {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    background-color: #f0f8ff;
+    margin: 0;
+    padding: 20px;
+}
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+h1 {
+    color: #ff6b6b;
+}
+.bacon-img {
+    width: 200px;
+    height: 200px;
+    margin: 20px auto;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid #ff6b6b;
+    transition: transform 0.3s;
+}
+.click-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 10px;
+    margin: 20px 0;
+    transition: all 0.3s;
+}
+.click-btn:hover {
+    background-color: #45a049;
+    transform: scale(1.05);
+}
+.progress-container {
+    width: 100%;
+    background-color: #ddd;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+.progress-bar {
+    height: 30px;
+    background-color: #4CAF50;
+    border-radius: 10px;
+    width: 0%;
+    transition: width 0.5s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+.counter {
+    font-size: 24px;
+    margin: 10px 0;
+}
+.message {
+    font-size: 18px;
+    margin: 20px 0;
+    color: #555;
+}

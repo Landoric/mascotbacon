@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Спаси Бейкона!</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Спаси Бейкона!</h1>
+        <img src="https://i.imgur.com/JQ9wfZo.png" alt="Бейкон" class="bacon-img" id="baconImage">
+        <p class="message">Наш маскот Бейкон в опасности! Помогите ему, нажав на кнопку ниже.</p>
+        
+        <div class="counter">
+            Всего кликов: <span id="totalClicks">0</span> / 777,777
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+        
+        <button class="click-btn" id="clickButton">Кликни, чтобы спасти!</button>
+        
+        <p class="message">Каждый клик приближает нас к спасению Бейкона. Расскажи друзьям!</p>
+    </div>
+
+    <script>
+        const TARGET_CLICKS = 777777;
+        let totalClicks = 0;
+        
+        // Обновление интерфейса
+        function updateUI() {
+            document.getElementById('totalClicks').textContent = totalClicks.toLocaleString();
+            const progress = Math.min((totalClicks / TARGET_CLICKS) * 100, 100);
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = `${progress}%`;
+            progressBar.textContent = `${progress.toFixed(2)}%`;
+            
+            // Анимация
+            document.getElementById('baconImage').style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                document.getElementById('baconImage').style.transform = 'scale(1)';
+            }, 200);
+        }
+        
+        // Получить текущие клики
+        async function getClicks() {
+            try {
+                const response = await fetch('/get_clicks');
+                const data = await response.json();
+                totalClicks = data.totalClicks;
+                updateUI();
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+        
+        // Добавить клик
+        async function addClick() {
+            try {
+                const response = await fetch('/add_click', { method: 'POST' });
+                const data = await response.json();
+                totalClicks = data.totalClicks;
+                updateUI();
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+        
+        // Обработчик клика
+        document.getElementById('clickButton').addEventListener('click', () => {
+            addClick();
+            
+            // Анимация кнопки
+            const btn = document.getElementById('clickButton');
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                btn.style.transform = 'scale(1)';
+            }, 100);
+        });
+        
+        // Запуск
+        getClicks();
+        setInterval(getClicks, 5000); // Обновлять каждые 5 секунд
+    </script>
+</body>
+</html>
