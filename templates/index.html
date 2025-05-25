@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Спаси Бейкона!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FF6B6B;
+            --secondary: #4ECDC4;
+            --dark: #292F36;
+            --light: #F7FFF7;
+            --accent: #FFE66D;
+        }
+        
+        body {
+            font-family: 'Rubik', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--dark);
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+        
+        h1 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .bacon-img {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            transition: all 0.3s ease;
+        }
+        
+        .message {
+            color: var(--dark);
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        
+        .counter {
+            font-size: 1.8rem;
+            margin: 20px 0;
+            font-weight: bold;
+            color: var(--dark);
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin: 25px 0;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .click-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(255, 107, 107, 0.3);
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .click-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(255, 107, 107, 0.4);
+            background: #ff5252;
+        }
+        
+        .click-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent);
+            opacity: 0;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Спаси Бейкона!</h1>
+        <img src="{{ url_for('static', filename='bacon.png') }}" alt="Бейкон" class="bacon-img">
+        <p class="message">Наш маскот Бейкон в опасности! Помогите ему, нажав на кнопку ниже. Нам нужно собрать 777,777 кликов!</p>
+        
+        <div class="counter">
+            Всего кликов: <span id="totalClicks">0</span> / 777,777
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+        
+        <button class="click-btn" id="clickButton">Кликни для спасения!</button>
+        
+        <p class="message">Каждый клик приближает нас к цели. Поделись с друзьями!</p>
+    </div>
+
+    <script>
+        const TARGET_CLICKS = 777777;
+        let totalClicks = 0;
+        
+        // Элементы DOM
+        const clickBtn = document.getElementById('clickButton');
+        const totalClicksEl = document.getElementById('totalClicks');
+        const progressBar = document.getElementById('progressBar');
+        const baconImage = document.getElementById('baconImage');
+        
+        // Анимация клика
+        function animateClick() {
+            // Анимация кнопки
+            clickBtn.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                clickBtn.style.transform = 'scale(1)';
+            }, 100);
+            
+            // Анимация изображения
+            baconImage.style.transform = 'scale(1.1) rotate(5deg)';
+            setTimeout(() => {
+                baconImage.style.transform = 'scale(1) rotate(0)';
+            }, 200);
+            
+            // Создаем конфеtti при достижении вех
+            if (totalClicks % 100 === 0) {
+                createConfetti();
+            }
+        }
+        
+        // Создание конфетти
+        function createConfetti() {
+            const container = document.querySelector('.container');
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = -10 + 'px';
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confetti.style.width = Math.random() * 10 + 5 + 'px';
+                confetti.style.height = Math.random() * 10 + 5 + 'px';
+                container.appendChild(confetti);
+                
+                // Анимация
+                const animation = confetti.animate([
+                    { top: '-10px', opacity: 1, transform: 'rotate(0deg)' },
+                    { top: '100%', opacity: 0, transform: 'rotate(360deg)' }
+                ], {
+                    duration: Math.random() * 3000 + 2000,
+                    easing: 'cubic-bezier(0.1, 0.8, 0.9, 1)'
+                });
+                
+                animation.onfinish = () => confetti.remove();
+            }
+        }
+        
+        // Обновление интерфейса
+        function updateUI() {
+            totalClicksEl.textContent = totalClicks.toLocaleString();
+            const progress = Math.min((totalClicks / TARGET_CLICKS) * 100, 100);
+            progressBar.style.width = `${progress}%`;
+            progressBar.textContent = `${progress.toFixed(2)}%`;
+            
+            // Изменение цвета при приближении к цели
+            if (progress > 70) {
+                progressBar.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
+            }
+        }
+        
+        // Отправка клика на сервер
+        async function addClick() {
+            try {
+                const response = await fetch('/add_click', { method: 'POST' });
+                const data = await response.json();
+                totalClicks = data.totalClicks;
+                updateUI();
+                animateClick();
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+        
+        // Получение текущего количества кликов
+        async function getClicks() {
+            try {
+                const response = await fetch('/get_clicks');
+                const data = await response.json();
+                totalClicks = data.totalClicks;
+                updateUI();
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+        
+        // Обработчик клика
+        clickBtn.addEventListener('click', addClick);
+        
+        // Инициализация
+        getClicks();
+        setInterval(getClicks, 5000); // Обновление каждые 5 секунд
+    </script>
+</body>
+</html>
