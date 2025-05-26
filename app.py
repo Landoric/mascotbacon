@@ -1,11 +1,8 @@
 from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 import os
 import time
 
-# Инициализация приложения
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -14,14 +11,12 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(basedir, "clic
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-MAX_CLICKS = 77777
+MAX_CLICKS = 777777
 
-# Модель базы данных
 class Total(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     count = db.Column(db.Integer, default=0)
 
-# Создание таблиц и начальной записи
 with app.app_context():
     db.create_all()
     if not Total.query.first():
@@ -33,7 +28,6 @@ def home():
     return render_template('index.html')
 
 @app.route('/add_click', methods=['POST'])
-@limiter.limit("10/second")
 def add_click():
     try:
         total = Total.query.first()
@@ -41,14 +35,7 @@ def add_click():
         if total.count >= MAX_CLICKS:
             return jsonify({'maxReached': True})
         
-        # Защита от быстрых кликов
-        now = time.time()
-        last_click = getattr(request, 'last_click', 0)
-        if now - last_click < 2:
-            return jsonify({'error': 'Слишком быстро!'}), 429
-        request.last_click = now
-        
-        # Обновление счетчика
+        # Оптимизированное обновление
         total.count += 1
         db.session.commit()
         
@@ -65,4 +52,4 @@ def get_clicks():
     return jsonify({'total': total.count if total else 0})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, threaded=True)  # Включена многопоточность
