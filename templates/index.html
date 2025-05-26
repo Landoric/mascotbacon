@@ -11,7 +11,7 @@
         <h1>Спаси Бейкона! </h1>
         <img src="{{ url_for('static', filename='bacon.png') }}" class="bacon-img" id="bacon">
         <div class="counter">
-            Всего кликов: <span id="total">0</span>/777,777
+            Всего кликов: <span id="total">0</span>/77,777
         </div>
         <div class="progress-container">
             <div class="progress-bar" id="progress" style="width: 0%">0%</div>
@@ -23,7 +23,7 @@
     <audio id="winSound" src="{{ url_for('static', filename='win.mp3') }}"></audio>
 
     <script>
-        const MAX = 777777;
+        const MAX = 77777;
         let isCelebrating = false;
 
         const elements = {
