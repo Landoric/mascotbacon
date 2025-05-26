@@ -2,3 +2,5 @@ flask
 flask-sqlalchemy
 psycopg2-binary
 gunicorn
+flask-sqlalchemy==3.1.1
+flask-limiter==3.3.0
