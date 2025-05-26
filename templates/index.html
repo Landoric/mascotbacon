@@ -8,76 +8,68 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Спаси Бейкона! 🥓</h1>
-        <img src="{{ url_for('static', filename='bacon.png') }}" class="bacon-img" id="baconImg">
-        <div class="counter">
-            Всего кликов: <span id="totalClicks">0</span>/777,777
+    <div class="glass-container">
+        <div class="header">
+            <h1 class="neon-text">Спаси Бейкона! <span class="emoji">🥓</span></h1>
+            <div class="counter">
+                <span id="currentClicks">0</span>
+                <div class="divider"></div>
+                <span id="maxClicks">77,777</span>
+            </div>
         </div>
+
+        <div class="bacon-container">
+            <img src="{{ url_for('static', filename='bacon.png') }}" class="bacon-img" id="baconImg">
+            <div class="particles"></div>
+        </div>
+
         <div class="progress-container">
-            <div class="progress-bar" id="progressBar">0%</div>
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-text" id="progressText">0%</div>
         </div>
-        <button class="click-button" id="clickButton">Кликни, чтобы спасти!</button>
+
+        <button class="neu-button" id="clickButton">
+            <span class="button-text">Кликни!</span>
+            <div class="button-effects"></div>
+        </button>
     </div>
 
-    <!-- Звуковые эффекты -->
     <audio id="clickSound" src="{{ url_for('static', filename='click.mp3') }}"></audio>
     <audio id="winSound" src="{{ url_for('static', filename='win.mp3') }}"></audio>
 
     <script>
-        // Конфигурация
-        const MAX_CLICKS = 777777;
-        const CLICK_DELAY = 100; // 100ms между запросами
+        const MAX_CLICKS = 77777; // 77,777
+        let lastClickTime = 0;
         let isCelebrating = false;
-        let clickQueue = 0;
-        
-        // Элементы DOM
+
+        // Элементы
         const elements = {
             clickButton: document.getElementById('clickButton'),
-            totalClicks: document.getElementById('totalClicks'),
+            currentClicks: document.getElementById('currentClicks'),
             progressBar: document.getElementById('progressBar'),
+            progressText: document.getElementById('progressText'),
             baconImg: document.getElementById('baconImg'),
-            clickSound: document.getElementById('clickSound'),
-            winSound: document.getElementById('winSound')
+            clickSound: document.getElementById('clickSound')
         };
 
-        // Обработчик кликов
-        function handleClick() {
+        // Обработчик клика
+        async function handleClick() {
             if (isCelebrating) return;
             
-            clickQueue++;
+            const now = Date.now();
+            if (now - lastClickTime < 50) return; // Защита от спама
+            lastClickTime = now;
+
+            // Воспроизведение звука сразу
             elements.clickSound.currentTime = 0;
             elements.clickSound.play();
             
-            // Анимация кнопки
-            elements.clickButton.classList.add('clicked');
-            setTimeout(() => {
-                elements.clickButton.classList.remove('clicked');
-            }, 100);
+            // Анимация
+            animateClick();
             
-            // Запуск обработки очереди
-            if (clickQueue === 1) processQueue();
-        }
-
-        // Обработка очереди кликов
-        async function processQueue() {
-            while (clickQueue > 0) {
-                await sendClickRequest();
-                clickQueue--;
-                await new Promise(resolve => setTimeout(resolve, CLICK_DELAY));
-            }
-        }
-
-        // Отправка запроса на сервер
-        async function sendClickRequest() {
             try {
                 const response = await fetch('/add_click', { method: 'POST' });
                 const data = await response.json();
-                
-                if (data.error) {
-                    alert(data.error);
-                    return;
-                }
                 
                 updateUI(data);
                 if (data.maxReached) startCelebration();
@@ -86,66 +78,68 @@
             }
         }
 
-        // Обновление интерфейса
-        function updateUI(data) {
-            elements.totalClicks.textContent = data.total.toLocaleString();
-            const progress = (data.total / MAX_CLICKS * 100).toFixed(2);
-            elements.progressBar.style.width = `${progress}%`;
-            elements.progressBar.textContent = `${progress}%`;
+        // Анимация клика
+        function animateClick() {
+            elements.clickButton.classList.add('clicked');
+            elements.baconImg.style.transform = 'scale(1.1)';
             
-            // Анимация бекончика
-            elements.baconImg.style.transform = `scale(${1 + data.total/MAX_CLICKS*0.5})`;
+            setTimeout(() => {
+                elements.clickButton.classList.remove('clicked');
+                elements.baconImg.style.transform = 'scale(1)';
+            }, 100);
         }
 
-        // Праздничные эффекты
+        // Обновление интерфейса
+        function updateUI(data) {
+            const current = data.total;
+            const progress = (current / MAX_CLICKS * 100).toFixed(1);
+            
+            elements.currentClicks.textContent = current.toLocaleString();
+            elements.progressBar.style.width = `${progress}%`;
+            elements.progressText.textContent = `${progress}%`;
+            
+            // Динамический цвет прогресс-бара
+            const hue = (progress * 1.2).toFixed(0);
+            elements.progressBar.style.background = `linear-gradient(90deg, 
+                hsl(${hue}, 100%, 50%), 
+                hsl(${hue + 20}, 100%, 50%))`;
+        }
+
+        // Эффекты победы
         function startCelebration() {
             if (isCelebrating) return;
             isCelebrating = true;
             
-            // Звук победы
-            elements.winSound.play();
-            
-            // CSS-анимации
             document.body.classList.add('celebrate');
             elements.baconImg.classList.add('animate__tada');
             
-            // Конфетти
-            for(let i = 0; i < 200; i++) {
-                createConfetti();
-            }
+            // Запуск конфетти
+            const winSound = document.getElementById('winSound');
+            winSound.play();
+            createConfettiStorm();
         }
 
-        // Создание конфетти
-        function createConfetti() {
-            const confetti = document.createElement('div');
-            confetti.className = 'confetti';
-            confetti.style.left = Math.random() * 100 + 'vw';
-            confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
-            
-            // Анимация падения
-            confetti.style.animation = `
-                fall ${Math.random() * 3 + 2}s linear,
-                drift ${Math.random() * 2 + 1}s ease-in-out infinite
-            `;
-            
-            document.body.appendChild(confetti);
-            setTimeout(() => confetti.remove(), 5000);
-        }
-
-        // Загрузка начальных данных
-        async function loadInitialData() {
-            try {
-                const response = await fetch('/get_clicks');
-                const data = await response.json();
-                updateUI(data);
-            } catch (error) {
-                console.error('Ошибка загрузки:', error);
+        // Генератор конфетти
+        function createConfettiStorm() {
+            const container = document.querySelector('.particles');
+            for(let i = 0; i < 150; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.cssText = `
+                    --x: ${Math.random() * 100}%;
+                    --delay: ${Math.random() * 2}s;
+                    --hue: ${Math.random() * 360};
+                    --speed: ${Math.random() * 3 + 2}s;
+                `;
+                container.appendChild(confetti);
             }
         }
 
         // Инициализация
         elements.clickButton.addEventListener('click', handleClick);
-        loadInitialData();
+        fetch('/get_clicks')
+            .then(r => r.json())
+            .then(updateUI);
     </script>
 </body>
 </html>
