@@ -2,46 +2,74 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Спаси Бейкона! </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Спаси Бейкона! 🥓</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 </head>
 <body>
     <div class="container">
-        <h1>Спаси Бейкона! </h1>
-        <img src="{{ url_for('static', filename='bacon.png') }}" class="bacon-img" id="bacon">
+        <h1>Спаси Бейкона! 🥓</h1>
+        <img src="{{ url_for('static', filename='bacon.png') }}" class="bacon-img" id="baconImg">
         <div class="counter">
-            Всего кликов: <span id="total">0</span>/77,777
+            Всего кликов: <span id="totalClicks">0</span>/777,777
         </div>
         <div class="progress-container">
-            <div class="progress-bar" id="progress" style="width: 0%">0%</div>
+            <div class="progress-bar" id="progressBar">0%</div>
         </div>
-        <button class="click-btn" id="clickBtn">Кликни!</button>
+        <button class="click-button" id="clickButton">Кликни, чтобы спасти!</button>
     </div>
 
+    <!-- Звуковые эффекты -->
     <audio id="clickSound" src="{{ url_for('static', filename='click.mp3') }}"></audio>
     <audio id="winSound" src="{{ url_for('static', filename='win.mp3') }}"></audio>
 
     <script>
-        const MAX = 77777;
+        // Конфигурация
+        const MAX_CLICKS = 777777;
+        const CLICK_DELAY = 100; // 100ms между запросами
         let isCelebrating = false;
-
+        let clickQueue = 0;
+        
+        // Элементы DOM
         const elements = {
-            clickBtn: document.getElementById('clickBtn'),
-            total: document.getElementById('total'),
-            progress: document.getElementById('progress'),
-            bacon: document.getElementById('bacon'),
+            clickButton: document.getElementById('clickButton'),
+            totalClicks: document.getElementById('totalClicks'),
+            progressBar: document.getElementById('progressBar'),
+            baconImg: document.getElementById('baconImg'),
             clickSound: document.getElementById('clickSound'),
             winSound: document.getElementById('winSound')
         };
 
-        async function addClick() {
+        // Обработчик кликов
+        function handleClick() {
             if (isCelebrating) return;
             
-            elements.clickBtn.disabled = true;
+            clickQueue++;
             elements.clickSound.currentTime = 0;
             elements.clickSound.play();
             
+            // Анимация кнопки
+            elements.clickButton.classList.add('clicked');
+            setTimeout(() => {
+                elements.clickButton.classList.remove('clicked');
+            }, 100);
+            
+            // Запуск обработки очереди
+            if (clickQueue === 1) processQueue();
+        }
+
+        // Обработка очереди кликов
+        async function processQueue() {
+            while (clickQueue > 0) {
+                await sendClickRequest();
+                clickQueue--;
+                await new Promise(resolve => setTimeout(resolve, CLICK_DELAY));
+            }
+        }
+
+        // Отправка запроса на сервер
+        async function sendClickRequest() {
             try {
                 const response = await fetch('/add_click', { method: 'POST' });
                 const data = await response.json();
@@ -50,74 +78,74 @@
                     alert(data.error);
                     return;
                 }
-
+                
                 updateUI(data);
-                if (data.maxReached) celebrate();
+                if (data.maxReached) startCelebration();
             } catch (error) {
                 console.error('Ошибка:', error);
-            } finally {
-                elements.clickBtn.disabled = false;
             }
         }
 
+        // Обновление интерфейса
         function updateUI(data) {
-            // Добавлена проверка на существование данных
-            if (!data || typeof data.total === 'undefined') {
-                console.error('Получены некорректные данные:', data);
-                return;
-            }
-
-            elements.total.textContent = data.total.toLocaleString();
-            const percent = (data.total / MAX * 100).toFixed(2);
-            elements.progress.style.width = `${percent}%`;
-            elements.progress.textContent = `${percent}%`;
+            elements.totalClicks.textContent = data.total.toLocaleString();
+            const progress = (data.total / MAX_CLICKS * 100).toFixed(2);
+            elements.progressBar.style.width = `${progress}%`;
+            elements.progressBar.textContent = `${progress}%`;
             
-            if (data.total >= MAX) celebrate();
+            // Анимация бекончика
+            elements.baconImg.style.transform = `scale(${1 + data.total/MAX_CLICKS*0.5})`;
         }
 
-        function celebrate() {
+        // Праздничные эффекты
+        function startCelebration() {
             if (isCelebrating) return;
             isCelebrating = true;
             
-            document.body.classList.add('victory');
+            // Звук победы
             elements.winSound.play();
             
-            for (let i = 0; i < 200; i++) {
+            // CSS-анимации
+            document.body.classList.add('celebrate');
+            elements.baconImg.classList.add('animate__tada');
+            
+            // Конфетти
+            for(let i = 0; i < 200; i++) {
                 createConfetti();
             }
-            
-            elements.bacon.classList.add('animate__animated', 'animate__heartBeat');
-            elements.clickBtn.disabled = true;
         }
 
+        // Создание конфетти
         function createConfetti() {
             const confetti = document.createElement('div');
             confetti.className = 'confetti';
             confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            
+            // Анимация падения
             confetti.style.animation = `
                 fall ${Math.random() * 3 + 2}s linear,
                 drift ${Math.random() * 2 + 1}s ease-in-out infinite
             `;
+            
             document.body.appendChild(confetti);
             setTimeout(() => confetti.remove(), 5000);
         }
 
-        // Инициализация с обработкой ошибок
-        async function init() {
+        // Загрузка начальных данных
+        async function loadInitialData() {
             try {
                 const response = await fetch('/get_clicks');
-                if (!response.ok) throw new Error('Ошибка сети');
-                
                 const data = await response.json();
                 updateUI(data);
             } catch (error) {
-                console.error('Ошибка при загрузке данных:', error);
-                elements.total.textContent = '0';
+                console.error('Ошибка загрузки:', error);
             }
         }
 
-        elements.clickBtn.addEventListener('click', addClick);
-        init(); // Запуск инициализации
+        // Инициализация
+        elements.clickButton.addEventListener('click', handleClick);
+        loadInitialData();
     </script>
 </body>
 </html>
