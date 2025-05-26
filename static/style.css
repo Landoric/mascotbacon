@@ -1,161 +1,140 @@
-:root {
-    --primary: hsl(0, 100%, 50%);
-    --background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
-    --glass: rgba(255, 255, 255, 0.05);
-}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Спаси Бейкона!</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+</head>
+<body>
+    <div class="glass-container">
+        <div class="header">
+            <h1 class="neon-text">Спаси Бейкона! <span class="emoji">😖</span></h1>
+            <div class="counter">
+                <span id="currentClicks">0</span>
+                <div class="divider"></div>
+                <span id="maxClicks">77,777</span>
+            </div>
+        </div>
 
-body {
-    margin: 0;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--background);
-    font-family: 'Roboto', sans-serif;
-    overflow: hidden;
-}
+        <!-- Аватарка + текст рядом -->
+        <div class="bacon-wrapper">
+            <div class="bacon-container">
+                <img src="{{ url_for('static', filename='bacon.png') }}" class="bacon-img" id="baconImg">
+                <div class="particles"></div>
+            </div>
+            <div class="bacon-text">
+                <h2>Бейкон в опасности!</h2>
+                <p>Твоя задача — спасти его, нажав <strong>77,777</strong> раз. Каждый клик — это шаг к спасению. Удачи!</p>
+            </div>
+        </div>
 
-.glass-container {
-    background: var(--glass);
-    backdrop-filter: blur(15px);
-    border-radius: 20px;
-    padding: 40px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    width: 90%;
-    max-width: 600px;
-    position: relative;
-}
+        <!-- Прогресс-бар -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-text" id="progressText">0%</div>
+        </div>
 
-.header {
-    text-align: center;
-    margin-bottom: 30px;
-}
+        <!-- Кнопка -->
+        <button class="neu-button" id="clickButton">
+            <span class="button-text">Кликни!</span>
+            <div class="button-effects"></div>
+        </button>
+    </div>
 
-.neon-text {
-    color: #fff;
-    font-size: 2.5em;
-    text-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
-    margin: 0 0 20px 0;
-}
+    <!-- Аудио -->
+    <audio id="clickSound" src="{{ url_for('static', filename='click.mp3') }}"></audio>
+    <audio id="winSound" src="{{ url_for('static', filename='win.mp3') }}"></audio>
 
-.emoji {
-    filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.8));
-}
+    <!-- Скрипт -->
+    <script>
+        const MAX_CLICKS = 77777;
+        let lastClickTime = 0;
+        let isCelebrating = false;
 
-.counter {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    font-size: 1.8em;
-    color: white;
-}
+        const elements = {
+            clickButton: document.getElementById('clickButton'),
+            currentClicks: document.getElementById('currentClicks'),
+            progressBar: document.getElementById('progressBar'),
+            progressText: document.getElementById('progressText'),
+            baconImg: document.getElementById('baconImg'),
+            clickSound: document.getElementById('clickSound')
+        };
 
-#currentClicks {
-    color: #ff6b6b;
-    font-weight: bold;
-}
+        async function handleClick() {
+            if (isCelebrating) return;
+            const now = Date.now();
+            if (now - lastClickTime < 50) return;
+            lastClickTime = now;
 
-.divider {
-    width: 2px;
-    height: 1em;
-    background: rgba(255, 255, 255, 0.3);
-}
+            elements.clickSound.currentTime = 0;
+            elements.clickSound.play();
 
-.bacon-container {
-    position: relative;
-    margin: 30px 0;
-}
+            animateClick();
 
-.bacon-img {
-    width: 200px;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 50%;
-    border: 3px solid rgba(255, 107, 107, 0.5);
-    box-shadow: 0 0 30px rgba(255, 107, 107, 0.3);
-    transition: transform 0.3s ease;
-    z-index: 2;
-    position: relative;
-}
+            try {
+                const response = await fetch('/add_click', { method: 'POST' });
+                const data = await response.json();
+                updateUI(data);
+                if (data.maxReached) startCelebration();
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
 
-.progress-container {
-    height: 25px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 12px;
-    margin: 30px 0;
-    position: relative;
-    overflow: hidden;
-}
+        function animateClick() {
+            elements.clickButton.classList.add('clicked');
+            elements.baconImg.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                elements.clickButton.classList.remove('clicked');
+                elements.baconImg.style.transform = 'scale(1)';
+            }, 100);
+        }
 
-.progress-bar {
-    height: 100%;
-    width: 0%;
-    transition: width 0.5s ease, background 0.5s ease;
-    border-radius: 12px;
-}
+        function updateUI(data) {
+            const current = data.total;
+            const progress = (current / MAX_CLICKS * 100).toFixed(1);
+            elements.currentClicks.textContent = current.toLocaleString();
+            elements.progressBar.style.width = `${progress}%`;
+            elements.progressText.textContent = `${progress}%`;
 
-.progress-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-weight: bold;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
+            const hue = (progress * 1.2).toFixed(0);
+            elements.progressBar.style.background = `linear-gradient(90deg, 
+                hsl(${hue}, 100%, 50%), 
+                hsl(${+hue + 20}, 100%, 50%))`;
+        }
 
-.neu-button {
-    background: var(--glass);
-    border: none;
-    padding: 20px 50px;
-    font-size: 1.2em;
-    color: white;
-    border-radius: 15px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    width: 100%;
-    backdrop-filter: blur(5px);
-}
+        function startCelebration() {
+            if (isCelebrating) return;
+            isCelebrating = true;
+            document.body.classList.add('celebrate');
+            elements.baconImg.classList.add('animate__tada');
 
-.neu-button:hover {
-    background: rgba(255, 107, 107, 0.1);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
+            const winSound = document.getElementById('winSound');
+            winSound.play();
+            createConfettiStorm();
+        }
 
-.neu-button:active {
-    transform: translateY(1px);
-}
+        function createConfettiStorm() {
+            const container = document.querySelector('.particles');
+            for(let i = 0; i < 150; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.cssText = `
+                    --x: ${Math.random() * 100}%;
+                    --delay: ${Math.random() * 2}s;
+                    --hue: ${Math.random() * 360};
+                    --speed: ${Math.random() * 3 + 2}s;
+                `;
+                container.appendChild(confetti);
+            }
+        }
 
-.confetti {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background: hsl(var(--hue), 100%, 50%);
-    animation: 
-        fall var(--speed) var(--delay) linear infinite,
-        drift 2s ease-in-out infinite;
-    opacity: 0.9;
-}
-
-@keyframes fall {
-    from { top: -20%; }
-    to { top: 120%; }
-}
-
-@keyframes drift {
-    0%, 100% { transform: translateX(-10px); }
-    50% { transform: translateX(10px); }
-}
-
-body.celebrate {
-    animation: colorShift 10s infinite linear;
-}
-
-@keyframes colorShift {
-    100% { filter: hue-rotate(360deg); }
-}
+        elements.clickButton.addEventListener('click', handleClick);
+        fetch('/get_clicks')
+            .then(r => r.json())
+            .then(updateUI);
+    </script>
+</body>
+</html>
