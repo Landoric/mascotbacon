@@ -18,7 +18,7 @@ db = SQLAlchemy(app)
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["300 per hour", "50 per minute"]
+    default_limits=["3000000 per hour", "500000 per minute"]
 )
 
 MAX_CLICKS = 777777
@@ -40,7 +40,7 @@ def home():
     return render_template('index.html')
 
 @app.route('/add_click', methods=['POST'])
-@limiter.limit("3/second")
+@limiter.limit("10/second")
 def add_click():
     try:
         total = Total.query.first()
@@ -51,7 +51,7 @@ def add_click():
         # Защита от быстрых кликов
         now = time.time()
         last_click = getattr(request, 'last_click', 0)
-        if now - last_click < 0.5:
+        if now - last_click < 0.05:
             return jsonify({'error': 'Слишком быстро!'}), 429
         request.last_click = now
         
