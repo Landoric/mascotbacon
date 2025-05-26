@@ -14,14 +14,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(basedir, "clic
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Лимитер запросов
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["3000000 per hour", "500000 per minute"]
-)
-
-MAX_CLICKS = 777777
+MAX_CLICKS = 77777
 
 # Модель базы данных
 class Total(db.Model):
@@ -51,7 +44,7 @@ def add_click():
         # Защита от быстрых кликов
         now = time.time()
         last_click = getattr(request, 'last_click', 0)
-        if now - last_click < 0.05:
+        if now - last_click < 2:
             return jsonify({'error': 'Слишком быстро!'}), 429
         request.last_click = now
         
